@@ -56,3 +56,42 @@ jsonp(url，opts，fn)
 ```
 
 正确顺序：获取数据=>加载组件=>将数据映射为DOM元素插入组件=>初始化组件样式
+
+## 3. slider组件的优化
+
+### 使用 `<keep-alive>` 组件保持页面不被销毁
+
+当 `<router-view>` 组件切换路由时，组件会被销毁，所有数据请求都会重新获取，这在该应用中是没有必要的，所以我们可以用 `<keep-alive>` 组件去保持页面不会销毁和重新渲染
+
+```js
+<keep-alive>
+  <router-view></router-view>
+</keep-alive>
+```
+
+## 4. 反向代理QQ音乐API
+
+由于QQ音乐的api做了访问限制，只有QQ音乐的域名才能够请求api来获取数据，这与其后台api设置的 `Access-Control-Allow-Origin` 有关。
+
+反向代理的原理就是在我们自己的服务器上去访问QQ音乐的API，同时在访问时修改http请求的head，让QQ音乐的api服务器认为我们的请求是被允许的，在我们的服务器端获取到数据后，我们的应用只需要访问我们的服务器即可获取到数据。
+
+使用axios做反向代理的示例：
+
+```js
+router.get('/getDiscList', (req, res) => {
+  var url = 'https://c.y.qq.com/splcloud/fcgi-bin/fcg_get_diss_by_tag.fcg'
+  axios.get(url, {
+    headers: {
+      // 修改请求头
+      referer: 'https://c.y.qq.com/',
+      host: 'c.y.qq.com'
+    },
+    // 获取url参数
+    params: req.query
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((e) => {
+    console.log(e)
+  })
+})
+```

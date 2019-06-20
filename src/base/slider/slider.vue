@@ -121,6 +121,9 @@ export default {
         this._setSliderWidth(true);
       }
     });
+  },
+  destroyed() {
+    clearTimeout(this.timer);
   }
 };
 </script>

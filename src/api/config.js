@@ -12,3 +12,5 @@ export const options = {
 }
 
 export const ERR_OK = 0;
+
+export const host = 'https://localhost:8081/api/qqMusic';
