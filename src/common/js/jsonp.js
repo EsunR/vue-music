@@ -1,6 +1,3 @@
-// WRANING: 由于QQ音乐已经改为json获取数据，jsonp方法已被弃用
-
-
 import originJSONP from 'jsonp';
 
 /**
