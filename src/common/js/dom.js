@@ -22,3 +22,20 @@ export function hasClass(el, className) {
   let reg = new RegExp('(^|\\s)' + className + '($|\\s)');
   return reg.test(el.className);
 }
+
+
+/**
+ * 为DOM元素设置 "data-" 属性，或者获取 "data-" 属性的值
+ * @param {Object} el DOM元素
+ * @param {String} name 获取属性名（data-后面的值）
+ * @param {val} val 为dom元素设置的值
+ */
+export function getSetData(el, name, val) {
+  const prefix = 'data-';
+  name = prefix + name;
+  if (val) {
+    return el.setAttribute(name, val);
+  } else {
+    return el.getAttribute(name);
+  }
+}

@@ -95,3 +95,105 @@ router.get('/getDiscList', (req, res) => {
   })
 })
 ```
+
+## 5. 子组件的事件代理
+
+拿滚动组件 `scroll.vue` 来说，其内部定义了一个 BetterScroll 对象的实例挂载于该组件上，我们想要从外部控制其内部的 BetterScroll 实例，我们要调用 BetterScroll 对象上的方法，则必须通过访问该子组件，在访问该子组件上的 BetterScroll 实例，再通过其实例访问其内部的方法，如：
+
+```js
+// 假设子组件的 ref 属性为 “listview”， 子组件内部的 BetterScroll 实例为 this.scroll
+this.$refs.listview.scroll.scrollToElement(el,time);
+```
+
+> 当我们用 `$refs` 去获取一个Vue的组件DOM时，获取的实际上是一个VueComponent对象
+
+这样显然很麻烦，也不符合Vue直接操作对象实例的规定。所以我们可以通过在子组件内部代理一个 `scrollToElement` 事件从而简化父组件对子组件内的 BetterScroll 实例进行的操作。
+
+```js
+// scrool.vue
+methods: {
+  scrollToElement() {
+    this.scroll && this.scroll.scrollToElement.apply(this.scroll, arguments);
+  }
+}
+```
+
+这样在父组件中如果我们要调用 BetterScroll 实例的方法时，只需要执行：
+
+```js
+this.$refs.listview.scrollToElement(el,time);
+```
+
+
+## 6. 合理利用Vue单个组件对象保存变量
+
+我们在使用单个Vue文件去编写一个组件的时候，每个组件对象都被Vue进行了处理，实例化为一个Vue对象，我们在data中设置的数据、methods中编写的方法，都会被挂载到这个组件对象上，因此我们可以通过 `this` 来访问到所有的方法、数据。
+
+同理，我们可以在对象本身上添加一些属性，这样就可以在组件内部通过 `this` 来进行调用。比如组件的两个方法之间存在一个共用的变量，我们就可以在 `created()` 生命周期函数中，将该变量挂载到 `this` 上，比如：
+
+```js
+created(){
+  this.obj = {}
+}
+```
+
+这样我们在不同的方法函数中都可以操作这个变量 `obj` 。
+
+使用 `data` 也可以进行此类操作，但是 `data` 中存放的数据我们主要是用于做DOM映射的，Vue会在其身上挂载geter和seter，单纯作为变量使用的变量没有必要存放于 `data` 中。
+
+## 7. 处理歌手列表的快捷操作思路（通讯录快捷列表）
+
+![20190621202732.png](http://img.cdn.esunr.xyz/markdown/20190621202732.png)
+
+### 数据分组：
+
+首先将数据进行头字母分组排序，分组的格式为:
+
+```js
+data: [
+  {
+    title: '热门',
+    items: [{name: "aa"}, {name: "bb"} ... ...]
+  }，
+  {
+    title: 'A',
+    items: [{name: "a1"}, {name: "a2"} ... ...]
+  },
+  {
+    title: 'B',
+    items: [{name: "b1"}, {name: "b2"} ... ...]
+  }
+  ... ...
+]
+```
+
+### 点击快捷列表进行快速定位
+
+遍历第一步分组好的数据，并将 `data.title` 的数据存放为一个数组，将数组进行遍历最后渲染出列表，并且在每个渲染出来的列表DOM中添加一个 `data-index` 属性存放索引值。
+
+我们将 `data` 中的数据分别分为多个 `list-group` 渲染出来。当我们点击右边的快捷列表中的某个字母时，会判断我们当前点击的字母DOM的 `data-index` 属性，从而获取其索引值，如项目中 `A` 的索引值为 `1` ，那么就应该跳转到第二组分类中，我们可以利用这个索引值，来获取到对应的DOM节点。我们只需要使用 BetterScroll 的 `scrollTo` 方法就可以滚动到对应DOM的位置上。
+
+### 在快捷列表上滑动定位
+
+当用户手指点击到屏幕上时，记录当前手指在屏幕上Y轴的位置，再监听 `touchmove` 事件，获取用户手指在滑动时Y轴的位置。这样我们就可以实时计算出用户手指滑动的距离。
+
+获得滑动距离后，我们只需要计算在用户滑动过了多少个快捷列表按钮，再加上用户开始滑动时的快捷列表按钮的索引值，就可以得出用户当前手指滑动到的快捷列表按钮的索引值，计算公式为：
+
+```js
+// ANCHOR_HEIGHT为索引列表按钮的高度
+let delta = ((this.touch.y2 - this.touch.y1) / ANCHOR_HEIGHT) | 0;
+// 获取用户滑动手指时当前所在按钮的索引值
+let anchorIndex = parseInt(this.touch.anchorIndex) + delta;
+```
+
+之后我们跟点击快捷列表时的操作一样，获取到索引值后利用 `scrollTo` 跳转到对应位置。
+
+### 滑动主列表时，快捷列表上的索引会高亮显示
+
+我们先要获取一个数组，这个数组中存放的是每个区域的边界值，我们可以通过遍历每个 `list-group` 的 `clientHeight` 来获取到每个元素的高度从而计计算出边界值。
+
+![20190621210722.png](http://img.cdn.esunr.xyz/markdown/20190621210722.png)
+
+我们通过监听滚动事件，可以获取页面滚动的高度，由边界值数组，我们可以计算出我们当前滚动在那个边界值中，通过数组的索引，我们可以得到快捷列表的索引。
+
+只需要在 `data` 上挂载一个 `currentIndex` 通过改变这个索引值就可以来改变DOM的css样式。
