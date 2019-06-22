@@ -31,8 +31,12 @@
       </ul>
     </div>
 
-    <div class="list-fixed" v-show="fixedTitle">
+    <div class="list-fixed" v-show="fixedTitle" ref="fixed">
       <h1 class="fixed-title">{{fixedTitle}}</h1>
+    </div>
+
+    <div v-show="!data.length" class="loading-container">
+      <loading></loading>
     </div>
   </scroll>
 </template>
@@ -40,18 +44,21 @@
 <script type="text/ecmascript-6">
 import Scroll from "base/scroll/scroll";
 import { getSetData } from "common/js/dom";
+import Loading from "base/loading/loading";
 
 const ANCHOR_HEIGHT = 18;
 const TITLE_HEIGHT = 30;
 
 export default {
   components: {
-    Scroll
+    Scroll,
+    Loading
   },
   data() {
     return {
       scrollY: -1,
-      currentIndex: 0
+      currentIndex: 0,
+      diff: -1
     };
   },
   props: {
@@ -95,7 +102,6 @@ export default {
       this.scrollY = pos.y;
     },
     _scrollTo(index) {
-      console.log("index: ", index);
       if (index < 0) {
         return;
       }
@@ -140,6 +146,7 @@ export default {
         let height2 = listHeight[i + 1];
         if (-newY >= height1 && -newY < height2) {
           this.currentIndex = i;
+          // diff为上方FixedBar的顶部距离下方标题栏顶部的距离
           this.diff = height2 + newY;
           return;
         }
@@ -148,12 +155,16 @@ export default {
       this.currentIndex = listHeight.length - 2;
     },
     diff(newVal) {
+      // 当FixedBar与下方标题栏发生触碰时，diff === TITLE_HEIGHT
+      // fixedTop为顶部FixedBar被顶上去的距离（是一个负值）
       let fixedTop =
         newVal > 0 && newVal < TITLE_HEIGHT ? newVal - TITLE_HEIGHT : 0;
       if (this.fixedTop === fixedTop) {
+        // 如果为为发生触碰，就不去操作DOM
         return;
       }
-      this, (fixedTop = fixedTop);
+      this.fixedTop = fixedTop;
+      this.$refs.fixed.style.transform = `translate3d(0,${fixedTop}px,0)`;
     }
   }
 };

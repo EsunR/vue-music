@@ -205,6 +205,49 @@ let anchorIndex = parseInt(this.touch.anchorIndex) + delta;
 
 只需要在 `data` 上挂载一个 `currentIndex` 通过改变这个索引值就可以来改变DOM的css样式。
 
-## 2.2 Fixtitle的实现
+## 2.2 FixedTitle的实现
 
-Fixtitle即
+FixedTtle即固定在列表顶端的标题，用来显示当前的分组，也是一个简单的吸顶效果，它主要分为如下几个阶段要点：
+
+- FixedTitle会一直固定在顶部
+- 当在顶部下拉时FixedTitle会被跟随下拉
+- 当下一个标题与FixedTitle接触时，FixedTitle会被上顶
+  
+![20190622095552.png](http://img.cdn.esunr.xyz/markdown/20190622095552.png)
+
+### 固定标题的实现思路
+
+其实FixedTitile是一个独立的DIV元素，它被固定在顶部渲染，用一个变量保存文案的内容，当滚动到不同区域时，有区域索引值获取到标题的文案，再填充到FixedTitle的文本中。
+
+```html
+<div class="list-fixed" ref="fixed">
+  <h1 class="fixed-title">{{fixedTitle}}</h1>
+</div>
+```
+
+### 当在顶部下拉时FixedTitle会被跟随下拉
+
+这个实现的原理就是当顶部下拉时，我们将 `fixedTitle` 变量空置，之后再使用 `v-show` 来隐藏FixedTitle，这样就会让用户感觉FixedTitle被下拉了：
+
+```html
+<div class="list-fixed" ref="fixed" v-show="fixedTitle">
+  <h1 class="fixed-title">{{fixedTitle}}</h1>
+</div>
+```
+
+### 当下一个标题与FixedTitle接触时，FixedTitle会被上顶
+
+我们需要在 `data` 设置一个变量为 `diff` ，其代表了上方FixedTitle的顶部距离下方标题栏顶部的距离，其是由list-group的边界值计算得出的：
+
+![20190622104108.png](http://img.cdn.esunr.xyz/markdown/20190622104108.png)
+
+当fixedTitle与listGropuTitle发生接触时，diff的取值范围为 `0~FiexdTitle的高度` 这时我们便可以求出fixedTitle被顶到视口上方的距离：
+
+![20190622105138.png](http://img.cdn.esunr.xyz/markdown/20190622105138.png)
+
+之后我们可以通过js来调整fixedTitle的css样式即可让其向上偏移：
+
+```js
+// this.$refs.fixed 是获取fixedTitle的DOM对象
+this.$refs.fixed.style.transform = `translate3d(0,${fixedTop}px,0)`;
+```
