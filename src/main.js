@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import App from './App.vue';
 import router from './router'
+import store from './store';
 // 解决移动端300ms点击延迟
 import fastclick from 'fastclick';
 import 'common/stylus/index.styl';
@@ -15,5 +16,6 @@ Vue.use(vueLazyload, {
 new Vue({
   el: '#app',
   router,
+  store,
   render: h => h(App)
 })

@@ -1,0 +1,16 @@
+## 获取音乐
+
+```
+http://dl.stream.qqmusic.qq.com/C400${musicData.songmid}.m4a?guid=2969171874&vkey=27B206E5B141AC237C21E71FA97C4CA0F1BA03702C673F8C2DE969A73A842649D6197E5EAA4EE106A2BBAC91E2678B48113AE20654FB2C50&uin=0&fromtag=38
+```
+
+
+
+
+
+
+
+
+
+
+

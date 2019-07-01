@@ -39,3 +39,10 @@ export function getSetData(el, name, val) {
     return el.getAttribute(name);
   }
 }
+
+// 能力检测
+let elementStyle = document.createElement('div').style
+
+let vendor = (() => {
+
+})

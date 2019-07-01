@@ -1,5 +1,25 @@
 # 开发日志
 
+```
+┌──────────────────┐
+|    ---------     |
+|   / / 0 0 \ \    |
+|  /  |  v  |  \   |
+|      \ _ /       |
+|        |         |
+|       /|\        |
+|      / | \       |
+|        |         |              Vue-Music Developing Log
+|       / \        |              
+|      /   \       |              -- By: EsunR
+|     /     \      |
+|------------------|
+|  哈哈哈哈哈哈哈哈 |
+|  23333333333333  |
+|  红红火火恍恍惚惚 |
+└──────────────────┘
+```
+
 # 1. 推荐界面
 
 ## 1.1 jsonp插件
@@ -251,3 +271,82 @@ FixedTtle即固定在列表顶端的标题，用来显示当前的分组，也�
 // this.$refs.fixed 是获取fixedTitle的DOM对象
 this.$refs.fixed.style.transform = `translate3d(0,${fixedTop}px,0)`;
 ```
+
+# 3. Vuex的使用
+
+## 3.1 使用严格模式
+
+按照规范，所有的Vuex数据变动都需要通过mutation来操作，如果我们开启Vuex的严格模式，所有的非法操作都会在控制台中报错，以便我们开发。
+
+```js
+const store = new Vuex.Store({
+  // ...
+  strict: true
+})
+```
+
+> 不要在发布环境下启用严格模式！严格模式会深度监测状态树来检测不合规的状态变更——请确保在发布环境下关闭严格模式，以避免性能损失。 --[官方文档](https://vuex.vuejs.org/zh/guide/strict.html)
+
+所以对于是否开启一个严格模式，我们可以通过检查打包环境是否为开发环境还是生产环境，来决定是否启用严格模式。其中，检查当前打包环境可以通过 `process.env.NODE_ENV !== 'production'` 的判断结果来取得。
+
+```js
+const store = new Vuex.Store({
+  // ...
+  strict: process.env.NODE_ENV !== 'production'
+})
+```
+
+## 3.2 使用插件
+
+采用 `createLogger` 插件，当Vuex的state数据发生变动时，会在控制台中打印出一条记录。
+
+## 3.3 使用辅助函数（语法糖）
+
+### mapMutations
+
+你可以在组件中使用 `this.$store.commit('xxx')` 提交 mutation，或者使用 `mapMutations` 辅助函数将组件中的 methods 映射为 `store.commit` 调用（需要在根节点注入 `store`）。
+
+```js
+import { mapMutations } from 'vuex'
+
+export default {
+  // ...
+  methods: {
+    ...mapMutations([
+      'increment', // 将 `this.increment()` 映射为 `this.$store.commit('increment')`
+
+      // `mapMutations` 也支持载荷：
+      'incrementBy' // 将 `this.incrementBy(amount)` 映射为 `this.$store.commit('incrementBy', amount)`
+    ]),
+    ...mapMutations({
+      add: 'increment' // 将 `this.add()` 映射为 `this.$store.commit('increment')`
+    })
+  }
+}
+```
+
+# 4. 歌手详情页
+
+## 4.1 歌手详情页布局
+
+歌手是通过路由进行跳转过去的，其总体页面为 `singer-detal.vue` 文件，该页面中处理了歌曲列表数据，并对数据进行了规范化。其整体的 `template` 部分仅一个 `music-list` 组件，向子组件内部分别传递了歌曲列表、歌手图片以及歌手名字。
+
+![20190701120851.png](http://img.cdn.esunr.xyz/markdown/20190701120851.png)
+
+![20190701120418.png](http://img.cdn.esunr.xyz/markdown/20190701120418.png)
+
+## 4.2 歌手详情页如何处理上滑效果
+
+![](http://markdown.img.esunr.xyz/上滑效果.gif)
+
+页面很自然的被我们分为两个部分，顶部歌手图片层，底部列表层，但是为了实现上面的效果，我们必须做一个layer层，整体的思路为：
+
+- 让歌手图片放在最底层，其宽高比为10:7
+- layer层放在中部，其高度为视口高度
+- 顶层放置歌曲列表
+
+当列表上滑时，layer层会跟着列表上滑，等layer层达到顶部界限值时，layer层会停止上滑，但是列表仍可上滑；此时会出现列表文字超出layer层覆盖到顶部被遮挡的图片上，这样文字就会显示在顶部。我们此时需要将文字隐藏与顶部的背景图片下，所以在此时将背景图的高度设置为固定值，将其 `z-index` 值设置为10，顶部歌手的背景图就可以遮挡住列表层，当列表向下滑动时，将背景图样式复原即可。
+
+![20190701134836.png](http://img.cdn.esunr.xyz/markdown/20190701134836.png)
+
+
