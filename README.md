@@ -325,6 +325,8 @@ export default {
 }
 ```
 
+> 同样的，`mapGetters` 可以作用在 `computed` 上，提供便捷的属性获取（只读）；`mapActions` 可以作用在 `methods` 上，提供便捷的数据更改操作。其用法与 `mapMutations` 相似。
+
 # 4. 歌手详情页
 
 ## 4.1 歌手详情页布局

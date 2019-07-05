@@ -40,25 +40,31 @@ export function getSetData(el, name, val) {
   }
 }
 
-// 能力检测
-let elementStyle = document.createElement('div').style
-let vendor = (() => {
-  let transformNames = {
-    webkit: 'webkitTransform',
-    Moz: 'MozTransform',
-    O: 'OTransform',
-    ms: 'msTransform',
-    standard: 'transform'
-  }
-  for (let key in transformNames) {
-    if (elementStyle[transformNames[key]] !== undefined) {
-      return key;
-    }
-  }
-  return false;
-})()
 
+
+/**
+ * 用js添加样式时，自动添加样式前缀
+ * @param {string} style 样式
+ */
 export function prefixStyle(style) {
+  // 浏览器检测
+  let elementStyle = document.createElement('div').style
+  let vendor = (() => {
+    let transformNames = {
+      webkit: 'webkitTransform',
+      Moz: 'MozTransform',
+      O: 'OTransform',
+      ms: 'msTransform',
+      standard: 'transform'
+    }
+    for (let key in transformNames) {
+      if (elementStyle[transformNames[key]] !== undefined) {
+        return key;
+      }
+    }
+    return false;
+  })()
+  // 返回前缀名称
   if (vendor === false) {
     return false;
   }
@@ -67,3 +73,4 @@ export function prefixStyle(style) {
   }
   return vendor + style.charAt(0).toUpperCase() + style.substr(1)
 }
+
