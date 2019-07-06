@@ -352,3 +352,160 @@ export default {
 ![20190701134836.png](http://img.cdn.esunr.xyz/markdown/20190701134836.png)
 
 
+# 5. 播放器展开、收回动画
+
+播放器展开时，上方文字和icon下降，下方操作面板icon上升，中间唱片从左下角滑动到中部位置，放大后再瞬间缩小，整体面板有一个透明度过度的效果。其最终效果如下：
+
+![](http://markdown.img.esunr.xyz/播放器动画.gif)
+
+## 5.1 使用vue的transtion组件
+
+Vue的transition组件可以提供播放器面板的整体效果，主要控制面板的渐变过度、文字和icon的上下展现，其状态比较单一，只需要在 `v-enter-acitve`、`v-leave-active` 阶段设置 `transition` 属性，之后再在 `v-enter` 和 `v-leave-to` 设置其动画的其实和结束状态，即可设置基本的动画效果。
+
+首先为其添加动画名称，然后再css中编写css3动画：
+
+```html
+<!-- template -->
+<transition name="normal">
+  <div class="normal-player"></div>
+</transition>
+```
+
+```css
+/* style */
+&.normal-enter-active, &.normal-leave-active {
+  transition: all 0.4s;
+
+  .top, .bottom {
+    transition: all 0.4s cubic-bezier(0.86, 0.18, 0.82, 1.32);
+  }
+}
+
+&.normal-enter, &.normal-leave-to {
+  opacity: 0;
+
+  .top {
+    transform: translate3d(0, -100px, 0);
+  }
+
+  .bottom {
+    transform: translate3d(0, 100px, 0);
+  }
+}
+```
+
+## 5.2 使用create-keyframe-animation在js中创建动画
+
+> 当我们需要动态计算一些动画样式的时候，vue中的transition组件就无法满足我们的需求了，这就需要用javascript去添加动画样式。
+
+create-keyframe-animation是一个提供在js中创建css动画的插件，将其运用在vue中，可以定制更为复杂的动画效果。该插件中为我们提供了如下的方法：
+
+**注册动画**
+
+```js
+import animations from "create-keyframe-animation";
+... ...
+animations.registerAnimation({
+  name: "animationName", // 动画名称
+  animation: {
+    // 为动画设置关键帧上的效果, exp:
+    0: {
+      opacity: 0
+    },
+    60: {
+      opacity: 0.2
+    },
+    100: {
+      opacity: 1
+    }
+  },
+  presets: {
+    // 动画预设, exp:
+    duration: 400,
+    easing: "linear"
+  }
+})
+```
+
+**启用已注册动画**
+
+```js
+import animations from "create-keyframe-animation";
+... ...
+// el: 想要添加动画效果的dom元素
+// animationName: 动画名称
+// callback: 回调函数
+animations.runAnimation(el, animationName, callback);
+```
+
+**注销动画**
+
+```js
+import animations from "create-keyframe-animation";
+... ...
+animations.unregisterAnimation("move");
+```
+
+在Vue中，我们可以利用Vue动画的钩子函数，来决定创建的动画的样式、启用动画的时刻、以及注销动画的时刻，我们在transition组件中注册这几个钩子函数：
+
+```html
+<!-- template -->
+<transition
+  name="normal"
+  @enter="enter"
+  @after-enter="afterEnter"
+  @leave="leave"
+  @after-leave="afterLeave"
+>
+... ...
+</transition>
+```
+
+这样我们就可以在各个钩子函数中控制动画的效果，我们要做的是计算出唱片动画的起始位置与最终位置之间的偏差值，然后再 `enter` 阶段去注册与运行唱片进入的动画，在 `afterEnter` 注销动画与清空动画样式:
+
+```js
+enter(el, done) {
+  const { x, y, scale } = this._getPosAndScale();
+  let animation = {
+    0: {
+      transform: `translate3d(${x}px,${y}px,0) scale(${scale})`
+    },
+    60: {
+      transform: `translate3d(0,0,0) scale(1.1)`
+    },
+    100: {
+      transform: `translate3d(0,0,0) scale(1)`
+    }
+  };
+  animations.registerAnimation({
+    name: "move",
+    animation,
+    presets: {
+      duration: 400,
+      easing: "linear"
+    }
+  });
+  animations.runAnimation(this.$refs.cdWrapper, "move", done);
+},
+afterEnter() {
+  animations.unregisterAnimation("move");
+  this.$refs.cdWrapper.style.animation = "";
+}
+```
+
+当关闭主播放器时，唱片仅仅做了一个简单的下滑动作，这时候我们就没有必要借助create-keyframe-animation插件来编写动画了，只需要利用钩子函数，在 `leave` 阶段为元素添加动画，然后在 `afterLeave` 阶段清空动画和动画完成后的样式即可：
+
+```js
+leave(el, done) {
+  this.$refs.cdWrapper.style.transition = "all 0.4s";
+  const { x, y, scale } = this._getPosAndScale();
+  this.$refs.cdWrapper.style[
+    transform
+  ] = `translate3d(${x}px,${y}px,0) scale(${scale})`;
+  this.$refs.cdWrapper.addEventListener("transitionend", done);
+},
+afterLeave() {
+  this.$refs.cdWrapper.style.transition = "";
+  this.$refs.cdWrapper.style[transform] = "";
+}
+```
