@@ -5,7 +5,7 @@
 
 <script type="text/ecmascript-6">
 import { mapGetters } from "vuex";
-import { getSingerDetail } from "api/singer";
+import { getSingerDetail, addSongUrl } from "api/singer";
 import { ERR_OK } from "api/config";
 import { createSong } from "common/js/song";
 import MusicList from "components/music-list/music-list";
@@ -21,14 +21,21 @@ export default {
   },
   methods: {
     _getDetail() {
+      let originData = {};
       if (!this.singer.id) {
         this.$router.push("/singer");
       }
-      getSingerDetail(this.singer.id).then(res => {
-        if (res.code === ERR_OK) {
-          this.songs = this._normalizeSongs(res.data.list);
-        }
-      });
+      getSingerDetail(this.singer.id)
+        .then(res => {
+          if (res.code === ERR_OK) {
+            originData = res.data.list;
+          }
+          return addSongUrl(originData);
+        })
+        .then(data => {
+          console.log(data);
+          this.songs = this._normalizeSongs(data);
+        });
     },
     _normalizeSongs(list) {
       let ret = [];

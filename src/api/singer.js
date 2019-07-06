@@ -1,5 +1,6 @@
+import axios from 'axios';
 import jsonp from 'common/js/jsonp'
-import { commonParams, options } from './config'
+import { commonParams, options, host } from './config'
 
 export function getSingerList() {
   const url = 'https://c.y.qq.com/v8/fcg-bin/v8.fcg';
@@ -32,4 +33,23 @@ export function getSingerDetail(singerId) {
   })
 
   return jsonp(url, data, options)
+}
+
+function getSongUrl(mid) {
+  return axios.get(host + '/getSongUrl?mid=' + mid)
+}
+
+export function addSongUrl(originData) {
+  return new Promise((resolve) => {
+    var i = 0;
+    originData.forEach(async item => {
+      getSongUrl(item.musicData.songmid).then(res => {
+        item.musicData.songUrl = res.data.songUrl
+        i++;
+        if (i === originData.length) {
+          resolve(originData);
+        }
+      });
+    });
+  })
 }

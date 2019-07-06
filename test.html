@@ -5,9 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <script src="https://cdn.bootcss.com/vue/2.6.10/vue.min.js"></script>
+  <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
   <style>
-    .box{
+    .box {
       height: 200px;
       width: 200px;
       background-color: pink;
@@ -22,14 +22,38 @@
   </div>
 
   <script>
-    var vm = new Vue({
-      el: '#app',
-      methods: {
-        touched(){
-          console.log(11111);
-        }
+    console.log(1);
+    var songmid = "001Qu4I30eVFYb";
+    var postData = {
+      g_tk: 195219765,
+      loginUin: 2967779251,
+      hostUin: 0,
+      format: "json",
+      inCharset: "utf8",
+      outCharset: "utf-8",
+      notice: 0,
+      platform: "yqq",
+      needNewCode: 0,
+      cid: 205361747,
+      callback: "MusicJsonCallback09576419469259068",
+      uin: 2967779251,
+      songmid: songmid,  //歌曲的id
+      filename: "C400" + songmid + ".m4a",
+      guid: 8129517694
+    }
+
+    $.ajax({
+      url: "https://c.y.qq.com/base/fcgi-bin/fcg_music_express_mobile3.fcg",
+      type: "GET",
+      data: postData,
+      jsonpCallback: "MusicJsonCallback09576419469259068",
+      success: function (response) {
+        var filename = response.data.items[0].filename;     //文件名
+        var vkey = response.data.items[0].vkey;             //密钥
+        var songUrl = "//dl.stream.qqmusic.qq.com/" + filename + "?vkey=" + vkey + "&guid=8129517694&uin=2967779251&fromtag=66";   //歌曲地址
+        console.log(songUrl);
       }
-    })
+    });
   </script>
 </body>
 

@@ -67,6 +67,8 @@
         </div>
       </div>
     </transition>
+
+    <audio ref="audio" src="currentSong.url"></audio>
   </div>
 </template>
 
@@ -152,6 +154,14 @@ export default {
         y,
         scale
       };
+    }
+  },
+  watch: {
+    currentSong() {
+      this.$nextTick(() => {
+        console.log(1);
+        this.$refs.audio.play();
+      });
     }
   }
 };
