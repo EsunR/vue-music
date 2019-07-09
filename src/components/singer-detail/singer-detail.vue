@@ -33,7 +33,6 @@ export default {
           return addSongUrl(originData);
         })
         .then(data => {
-          console.log(data);
           this.songs = this._normalizeSongs(data);
         });
     },

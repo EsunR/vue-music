@@ -528,3 +528,25 @@ afterLeave() {
   this.$refs.cdWrapper.style[transform] = "";
 }
 ```
+
+
+
+# 6. 播放器组件
+
+## 6.1 使用$nextTick在数据更新后操作DOM
+
+Vue 实现响应式并不是数据发生变化之后 DOM 立即变化，而是按一定的策略进行 DOM 的更新。
+
+$nextTick 是在下次 DOM 更新循环结束之后执行延迟回调，在修改数据之后使用 $nextTick，则可以在回调中获取更新后的 DOM。
+
+在项目中的播放器页面，，DOM中的audio标签与currentSong存在数据绑定关系，我们想让currentSong发生变化后，通过 `watch` 监听函数操作audio让其播放音乐。但是在 `watch` 监听被触发后，DOM以异步的形式去更新渲染，此时监听函数在此时被触发，但是DOM渲染尚未完成，对audio的操作就会失败。在此时我们可以使用 `$nextTick` 方法，让操作在DOM完成渲染之后再执行：
+
+```js
+watch: {
+  currentSong() {
+    this.$nextTick(() => {
+      this.$refs.audio.play();
+    });
+  }
+}
+```

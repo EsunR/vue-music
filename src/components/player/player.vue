@@ -23,7 +23,7 @@
         <div class="middle">
           <div class="middle-l" ref="middleL">
             <div class="cd-wrapper" ref="cdWrapper">
-              <div class="cd">
+              <div class="cd" :class="cdCls">
                 <img class="image" :src="currentSong.image">
               </div>
             </div>
@@ -35,14 +35,14 @@
             <div class="icon i-left">
               <i class="icon-sequence"></i>
             </div>
-            <div class="icon i-left">
-              <i class="icon-prev"></i>
+            <div class="icon i-left" :class="disableCls">
+              <i @click="prev" class="icon-prev"></i>
             </div>
-            <div class="icon i-center">
-              <i class="icon-play"></i>
+            <div class="icon i-center" :class="disableCls">
+              <i :class="playIcon" @click="togglePlaying"></i>
             </div>
-            <div class="icon i-right">
-              <i class="icon-next"></i>
+            <div class="icon i-right" :class="disableCls">
+              <i @click="next" class="icon-next"></i>
             </div>
             <div class="icon i-right">
               <i class="icon icon-not-favorite"></i>
@@ -61,14 +61,16 @@
           <h2 class="name" v-html="currentSong.name"></h2>
           <p class="desc" v-html="currentSong.singer"></p>
         </div>
-        <div class="control"></div>
+        <div class="control">
+          <i @click.stop="togglePlaying" :class="miniIcon"></i>
+        </div>
         <div class="control">
           <i class="icon-playlist"></i>
         </div>
       </div>
     </transition>
 
-    <audio ref="audio" src="currentSong.url"></audio>
+    <audio ref="audio" :src="currentSong.url" @canplay="ready" @error="error"></audio>
   </div>
 </template>
 
@@ -88,13 +90,53 @@ const transform = prefixStyle("transform");
 // const transitionDuration = prefixStyle("transitionDuration");
 
 export default {
+  data() {
+    return {
+      songReady: false
+    };
+  },
   computed: {
-    ...mapGetters(["fullScreen", "playlist", "currentSong"])
+    ...mapGetters([
+      "fullScreen",
+      "playlist",
+      "currentSong",
+      "playing",
+      "currentIndex"
+    ]),
+    playIcon() {
+      return this.playing ? "icon-pause" : "icon-play";
+    },
+    miniIcon() {
+      return this.playing ? "icon-pause-mini" : "icon-play-mini";
+    },
+    cdCls() {
+      return this.playing ? "play" : "play pause";
+    },
+    disableCls() {
+      return this.songReady ? "" : "disable";
+    }
   },
   methods: {
     ...mapMutations({
-      setFullScreen: "SET_FULL_SCREEN"
+      setFullScreen: "SET_FULL_SCREEN",
+      setPlayingState: "SET_PLAYING_STATE",
+      setCurrentIndex: "SET_CURRENT_INDEX"
     }),
+    _getPosAndScale() {
+      const targetWidth = 40;
+      const paddingLeft = 40;
+      const paddingBottom = 30;
+      const paddingTop = 80;
+      const width = window.innerWidth * 0.8;
+      const scale = targetWidth / width;
+      const x = -(window.innerWidth / 2 - paddingLeft);
+      const y = window.innerHeight - paddingTop - width / 2 - paddingBottom;
+      return {
+        x,
+        y,
+        scale
+      };
+    },
     back() {
       this.setFullScreen(false);
     },
@@ -140,27 +182,55 @@ export default {
       this.$refs.cdWrapper.style.transition = "";
       this.$refs.cdWrapper.style[transform] = "";
     },
-    _getPosAndScale() {
-      const targetWidth = 40;
-      const paddingLeft = 40;
-      const paddingBottom = 30;
-      const paddingTop = 80;
-      const width = window.innerWidth * 0.8;
-      const scale = targetWidth / width;
-      const x = -(window.innerWidth / 2 - paddingLeft);
-      const y = window.innerHeight - paddingTop - width / 2 - paddingBottom;
-      return {
-        x,
-        y,
-        scale
-      };
+    togglePlaying() {
+      this.setPlayingState(!this.playing);
+    },
+    next() {
+      if (!this.songReady) {
+        return;
+      }
+      let index = this.currentIndex + 1;
+      if (index === this.playlist.length) {
+        index = 0;
+      }
+      this.setCurrentIndex(index);
+      if (!this.playing) {
+        this.togglePlaying();
+      }
+      this.songReady = false;
+    },
+    prev() {
+      if (!this.songReady) {
+        return;
+      }
+      let index = this.currentIndex - 1;
+      if (index === -1) {
+        index = this.playlist.length - 1;
+      }
+      this.setCurrentIndex(index);
+      if (!this.playing) {
+        this.togglePlaying();
+      }
+      this.songReady = false;
+    },
+    ready() {
+      this.songReady = true;
+    },
+    error() {
+      this.songReady = true;
     }
   },
   watch: {
     currentSong() {
+      // console.log(1);
       this.$nextTick(() => {
-        console.log(1);
         this.$refs.audio.play();
+      });
+    },
+    playing(newPlaying) {
+      const audio = this.$refs.audio;
+      this.$nextTick(() => {
+        newPlaying ? audio.play() : audio.pause();
       });
     }
   }
