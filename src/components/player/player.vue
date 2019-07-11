@@ -31,9 +31,16 @@
         </div>
         <!-- 底部 -->
         <div class="bottom">
+          <div class="progress-wrapper">
+            <span class="time time-l">{{format(currentTime)}}</span>
+            <div class="progress-bar-wrapper">
+              <progress-bar :percent="percent" @percentChange="onProgressBarChange"></progress-bar>
+            </div>
+            <span class="time time-r">{{format(currentSong.duration)}}</span>
+          </div>
           <div class="operators">
             <div class="icon i-left">
-              <i class="icon-sequence"></i>
+              <i :class="iconMode" @click="changeMode"></i>
             </div>
             <div class="icon i-left" :class="disableCls">
               <i @click="prev" class="icon-prev"></i>
@@ -62,7 +69,9 @@
           <p class="desc" v-html="currentSong.singer"></p>
         </div>
         <div class="control">
-          <i @click.stop="togglePlaying" :class="miniIcon"></i>
+          <progress-circle :radius="32" :percent="percent">
+            <i @click.stop="togglePlaying" :class="miniIcon" class="icon-mini"></i>
+          </progress-circle>
         </div>
         <div class="control">
           <i class="icon-playlist"></i>
@@ -70,7 +79,14 @@
       </div>
     </transition>
 
-    <audio ref="audio" :src="currentSong.url" @canplay="ready" @error="error"></audio>
+    <audio
+      ref="audio"
+      :src="currentSong.url"
+      @canplay="ready"
+      @error="error"
+      @timeupdate="updateTime"
+      @ended="ended"
+    ></audio>
   </div>
 </template>
 
@@ -78,9 +94,10 @@
 import { mapGetters, mapMutations /*, mapActions*/ } from "vuex";
 import animations from "create-keyframe-animation";
 import { prefixStyle } from "common/js/dom";
-// import ProgressBar from "base/progress-bar/progress-bar";
-// import ProgressCircle from "base/progress-circle/progress-circle";
-// import { playMode } from "common/js/config";
+import ProgressBar from "base/progress-bar/progress-bar";
+import ProgressCircle from "base/progress-circle/progress-circle";
+import { playMode } from "common/js/config";
+import { shuffle } from "common/js/util.js";
 // import Lyric from "lyric-parser";
 // import Scroll from "base/scroll/scroll";
 // import { playerMixin } from "common/js/mixin";
@@ -90,9 +107,14 @@ const transform = prefixStyle("transform");
 // const transitionDuration = prefixStyle("transitionDuration");
 
 export default {
+  components: {
+    ProgressBar,
+    ProgressCircle
+  },
   data() {
     return {
-      songReady: false
+      songReady: false,
+      currentTime: 0
     };
   },
   computed: {
@@ -101,7 +123,9 @@ export default {
       "playlist",
       "currentSong",
       "playing",
-      "currentIndex"
+      "currentIndex",
+      "mode",
+      "sequenceList"
     ]),
     playIcon() {
       return this.playing ? "icon-pause" : "icon-play";
@@ -114,13 +138,30 @@ export default {
     },
     disableCls() {
       return this.songReady ? "" : "disable";
+    },
+    percent() {
+      return this.currentTime / this.currentSong.duration;
+    },
+    iconMode() {
+      switch (this.mode) {
+        case playMode.sequence:
+          return "icon-sequence";
+        case playMode.loop:
+          return "icon-loop";
+        case playMode.random:
+          return "icon-random";
+        default:
+          return "";
+      }
     }
   },
   methods: {
     ...mapMutations({
       setFullScreen: "SET_FULL_SCREEN",
       setPlayingState: "SET_PLAYING_STATE",
-      setCurrentIndex: "SET_CURRENT_INDEX"
+      setCurrentIndex: "SET_CURRENT_INDEX",
+      setPlayMode: "SET_PLAY_MODE",
+      setPlayList: "SET_PLAYLIST"
     }),
     _getPosAndScale() {
       const targetWidth = 40;
@@ -136,6 +177,15 @@ export default {
         y,
         scale
       };
+    },
+    // 补位函数
+    _pad(num, n = 2) {
+      let len = num.toString().length;
+      while (len < n) {
+        num = "0" + num;
+        len++;
+      }
+      return num;
     },
     back() {
       this.setFullScreen(false);
@@ -185,6 +235,14 @@ export default {
     togglePlaying() {
       this.setPlayingState(!this.playing);
     },
+    ended() {
+      if (this.mode === playMode.loop) {
+        this.currentTime = 0;
+        this.$refs.audio.play();
+      } else {
+        this.next();
+      }
+    },
     next() {
       if (!this.songReady) {
         return;
@@ -217,12 +275,47 @@ export default {
       this.songReady = true;
     },
     error() {
+      console.log("该歌曲没有版权信息");
+      this.setPlayingState(false);
       this.songReady = true;
+    },
+    updateTime(e) {
+      this.currentTime = e.target.currentTime;
+    },
+    // 格式化时间指示
+    format(interval) {
+      interval = interval | 0;
+      const minute = (interval / 60) | 0;
+      const second = this._pad(interval % 60);
+      return `${minute}:${second}`;
+    },
+    onProgressBarChange(percent) {
+      this.$refs.audio.currentTime = this.currentSong.duration * percent;
+    },
+    changeMode() {
+      const mode = (this.mode + 1) % 3;
+      this.setPlayMode(mode);
+      let list = null;
+      if (mode === playMode.random) {
+        list = shuffle(this.sequenceList);
+      } else {
+        list = this.sequenceList;
+      }
+      this.resetCurrentIndex(list);
+      this.setPlayList(list);
+    },
+    resetCurrentIndex(list) {
+      let index = list.findIndex(item => {
+        return item.id === this.currentSong.id;
+      });
+      this.setCurrentIndex(index);
     }
   },
   watch: {
-    currentSong() {
-      // console.log(1);
+    currentSong(newSong, oldSong) {
+      if (newSong.id === oldSong.id) {
+        return;
+      }
       this.$nextTick(() => {
         this.$refs.audio.play();
       });
